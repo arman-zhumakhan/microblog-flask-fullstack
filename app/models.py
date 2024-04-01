@@ -10,6 +10,8 @@ import jwt
 from app import db, login
 from flask import current_app
 
+from app.search import add_to_index, remove_from_index, query_index
+
 
 followers = sa.Table(
     'followers',
@@ -114,6 +116,8 @@ def load_user(id):
 
 
 class Post(db.Model):
+    __searchable__ = ['body']
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(
@@ -125,3 +129,20 @@ class Post(db.Model):
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
+
+
+class SearchableMixin(object):
+    @classmethod
+    def search(cls, expression, page, per_page):
+        ids, total = query_index(cls.__tablename__, expression, page, per_page)
+        if total == 0:
+            return [], 0
+        when = []
+        for i in range(len(ids)):
+            when.append((ids[i], i))
+        
+        query = sa.select(cls).where(cls.id.in_(ids)).order_by(
+            db.case(*when, value=cls.id)
+        )
+        
+        return db.session.scalars(query), total
