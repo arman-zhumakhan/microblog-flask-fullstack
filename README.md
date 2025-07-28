@@ -4,6 +4,13 @@ This is the Microblog project with Flask backend. Frontend is in Bootstrap, HTML
 
 
 ## Installation
+### Docker
+```
+docker build -t microblog:latest .
+docker run --name microblog -d -p 8000:5000 --rm microblog:latest
+```
+
+### Manually run locally
 1. Create a virtual env and install dependencies
 ```
 python3 -m venv venv
