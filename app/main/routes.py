@@ -6,8 +6,10 @@ from app.main.forms import EditProfileForm, EmptyForm, PostForm
 from app.models import User, Post
 from flask_login import current_user, login_required
 from app.main import bp
+from flask_babel import get_locale, _
 
-@bp.before_request
+
+@bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
         current_user.last_seen = datetime.now(timezone.utc)

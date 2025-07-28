@@ -11,6 +11,8 @@ from config import Config
 from flask_moment import Moment
 from elasticsearch import Elasticsearch
 
+def get_locale():
+    return 'en'
 
 db = SQLAlchemy()
 migrate = Migrate()
