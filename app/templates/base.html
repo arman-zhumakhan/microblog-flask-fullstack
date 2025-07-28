@@ -44,6 +44,14 @@
             </li>
             {% endif %}
           </ul>
+          {% if g.search_form %}
+          <form class="navbar-form navbar-left" method="get"
+                action="{{ url_for('main.search') }}">
+                <div class="form-group">
+                  {{ g.search_form.q(size=20, class='form-control', placeholder=g.search_form.q.label.text) }}
+                </div>
+          </form>
+          {% endif %}
         </div>
       </div>
     </nav>
@@ -63,10 +71,11 @@
         crossorigin="anonymous">
     </script>
     {{ moment.include_moment() }}
+    {{ moment.lang(g.locale) }}
     <script>
       async function translate(sourceElem, destElem, sourceLang, destLang) {
         document.getElementById(destElem).innerHTML = 
-          '<img src="{{ url_for('static', filename='loading.gif') }}">';
+          "<img src=\"{{ url_for('static', filename='loading.gif') }}\">";
         const response = await fetch('/translate', {
           method: 'POST',
           headers: {'Content-Type': 'application/json; charset=utf-8'},
