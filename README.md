@@ -39,3 +39,10 @@ docker run --name elasticsearch -d --rm -p 9200:9200 \
     -t docker.elastic.co/elasticsearch/elasticsearch:9.0.3
 ```
 2. Add its URL to .env
+
+
+## Testing
+Start a Python interpreter in the context of the app
+```
+flask shell
+```
