@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from hashlib import md5
 from time import time
@@ -49,6 +50,8 @@ class User(UserMixin, db.Model):
         foreign_keys='Message.sender_id', back_populates='author')
     messages_received: so.WriteOnlyMapped['Message'] = so.relationship(
         foreign_keys='Message.recipient_id', back_populates='recipient')
+    notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
+        back_populates='user')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -199,6 +202,18 @@ class Message(db.Model):
 
     def __repr__(self):
         return '<Message {}>'.format(self.body)
+
+
+class Notification(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    timestamp: so.Mapped[float] = so.mapped_column(index=True, default=time)
+    payload_json: so.Mapped[str] = so.mapped_column(sa.Text)
+    user: so.Mapped[User] = so.relationship(back_populates='notifications')
+
+    def get_data(self):
+        return json.loads(str(self.payload_json))
 
 
 db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
