@@ -116,6 +116,14 @@ class User(UserMixin, db.Model):
         except Exception:
             return
         return db.session.get(User, id)
+    
+    def add_notification(self, name, data):
+        db.session.execute(
+            self.notifications.delete().where(Notification.name == name)
+        )
+        n = Notification(name, payload_json=json.dumps(data), user=self)
+        db.session.add(n)
+        return n
 
 
 @login.user_loader
