@@ -7,7 +7,7 @@ from typing import Optional
 import jwt
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from flask import current_app
+from flask import current_app, url_for
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -24,7 +24,31 @@ followers = sa.Table(
 )
 
 
-class User(UserMixin, db.Model):
+class PaginatedAPIMixin(object):
+    @staticmethod
+    def to_collectin_dict(query, page, per_page, endpoint, **kwargs):
+        resources = db.paginate(query, page=page, per_page=per_page, error_out=False)
+        data = {
+            'items': [item.to_dict() for item in resources.items],
+            '_meta': {
+                'page': page,
+                'per_page': per_page,
+                'total_pages': resources.pages,
+                'total_items': resources.total
+            },
+            '_links': {
+                'self': url_for(endpoint, page=page, per_page=per_page,
+                                **kwargs),
+                'next': url_for(endpoint, page=page + 1, per_page=per_page,
+                                **kwargs) if resources.has_next else None,
+                'prev': url_for(endpoint, page=page - 1, per_page=per_page,
+                                **kwargs) if resources.has_prev else None
+            }
+        }
+        return data
+
+
+class User(PaginatedAPIMixin, UserMixin, db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True,
                                                 unique=True)
@@ -124,6 +148,40 @@ class User(UserMixin, db.Model):
         n = Notification(name, payload_json=json.dumps(data), user=self)
         db.session.add(n)
         return n
+
+    def posts_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.posts.select().subquery()
+        )
+        return db.session.scalar(query)
+
+    def to_dict(self, include_email=False):
+        data = {
+            'id': self.id,
+            'username': self.username,
+            'last_seen': self.last_seen.replace(
+                tzinfo=timezone.utc).isoformat() if self.last_seen else None,
+            'about_me': self.about_me,
+            'post_count': self.posts_count(),
+            'follower_count': self.followers_count(),
+            'following_count': self.following_count(),
+            '_links': {
+                'self': url_for('api.get_user', id=self.id),
+                'followers': url_for('api.get_followers', id=self.id),
+                'following': url_for('api.get_following', id=self.id),
+                'avatar': self.avatar(128)
+            }
+        }
+        if include_email:
+            data['email'] = self.email
+        return data
+    
+    def from_dict(self, data, new_user=False):
+        for field in ['username', 'email', 'about_me']:
+            if field in data:
+                setattr(self, field, data[field])
+        if new_user and 'password' in data:
+            self.set_password(data['password'])
 
 
 @login.user_loader
