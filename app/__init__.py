@@ -1,15 +1,21 @@
 import logging
-from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
+from logging.handlers import RotatingFileHandler, SMTPHandler
+
+import rq
+from elasticsearch import Elasticsearch
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from flask_babel import Babel
+from flask_babel import lazy_gettext as _l
 from flask_login import LoginManager
 from flask_mail import Mail
-from flask_babel import Babel, lazy_gettext as _l
-from config import Config
+from flask_migrate import Migrate
 from flask_moment import Moment
-from elasticsearch import Elasticsearch
+from flask_sqlalchemy import SQLAlchemy
+from redis import Redis
+
+from config import Config
+
 
 def get_locale():
     return 'en'
@@ -33,6 +39,8 @@ def create_app(config_class=Config):
     mail.init_app(app)
     moment.init_app(app)
     babel.init_app(app)
+    app.redis = Redis.from_url(app.config['REDIS_URL'])
+    app.task_queue = rq.Queue('microblog-tasks', connection=app.redis)
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
