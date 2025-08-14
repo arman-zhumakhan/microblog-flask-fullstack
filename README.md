@@ -40,6 +40,23 @@ docker run --name elasticsearch -d --rm -p 9200:9200 \
 ```
 2. Add its URL to .env
 
+## Redis server for a task queue
+1. Install a Redis server
+
+MacOS
+```
+brew install redis
+```
+
+Ubuntu Linux
+```
+sudo apt-get install redis-server
+```
+
+2. Create a supervisor confuguration
+```
+rq worker microblog-tasks
+```
 
 ## Testing
 Start a Python interpreter in the context of the app

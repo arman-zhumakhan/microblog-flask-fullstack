@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
-from flask import render_template, flash, redirect, url_for, request, g, current_app
+
 import sqlalchemy as sa
-from app import db
-from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, MessageForm
-from app.models import User, Post, Message, Notification
+from flask import current_app, flash, g, redirect, render_template, request, url_for
+from flask_babel import _, get_locale
 from flask_login import current_user, login_required
+
+from app import db
 from app.main import bp
-from flask_babel import get_locale, _
+from app.main.forms import EditProfileForm, EmptyForm, MessageForm, PostForm, SearchForm
+from app.models import Message, Notification, Post, User
 
 
 @bp.before_app_request
@@ -197,7 +199,7 @@ def notifications():
         Notification.timestamp > since).order_by(Notification.timestamp.asc())
     notifications = db.session.scalars(query)
     return [
-        { 'name': n.name, 
+        { 'name': n.name,
          'data': n.get_data(), 
          'timestamp': n.timestamp } 
          for n in notifications
