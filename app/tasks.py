@@ -1,3 +1,4 @@
+# pylint: disable=not-callable
 import json
 import sys
 import time

@@ -1,3 +1,4 @@
+# pylint: disable=not-callable
 import json
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -151,7 +152,7 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
         db.session.execute(
             self.notifications.delete().where(Notification.name == name)
         )
-        n = Notification(name, payload_json=json.dumps(data), user=self)
+        n = Notification(name=name, payload_json=json.dumps(data), user=self)
         db.session.add(n)
         return n
 
@@ -160,6 +161,12 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
             self.posts.select().subquery()
         )
         return db.session.scalar(query)
+
+    def unread_message_count(self):
+        last_read_time = self.last_message_read_time or datetime(1970, 1, 1)
+        query = sa.select(Message).where(Message.recipient == self,
+                                         Message.timestamp > last_read_time)
+        return db.session.scalar(sa.select(sa.func.count()).select_from(query.subquery()))
 
     def to_dict(self, include_email=False):
         data = {
@@ -210,7 +217,7 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     
 
     def launch_task(self, name, description, *args, **kwargs):
-        rq_job = current_app.task_queue.enqueue(f'app.tasks.{name}', 'self.id', *args, **kwargs)
+        rq_job = current_app.task_queue.enqueue(f'app.tasks.{name}', self.id, *args, **kwargs)
         task = Task(id=rq_job.get_id(), name=name, description=description, user=self)
         db.session.add(task)
         return task
@@ -270,12 +277,6 @@ class SearchableMixin(object):
     def reindex(cls):
         for obj in db.session.scalars(sa.select(cls)):
             add_to_index(cls.__tablename__, obj)
-    
-    def unread_message_count(self):
-        last_read_time = self.last_message_read_time or datetime(1970, 1, 1)
-        query = sa.select(Message).where(Message.recipient == self,
-                                         Message.timestamp > last_read_time)
-        return db.session.scalar(sa.select(sa.func.count()).select_from(query.subquery()))
 
 
 class Post(SearchableMixin, db.Model):
